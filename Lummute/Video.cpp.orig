@@ -1,0 +1,136 @@
+#include "Video.h"
+
+Video::Video(void)
+{
+}
+
+Video::~Video(void)
+{
+}
+
+Video::Video(DataStore& data)
+{
+	font.LoadFromFile("bin/gfx/arial.ttf", 30);
+	ghostImage.Create(data.settings.WIN_WIDTH, data.settings.WIN_HEIGHT, sf::Color::White);
+	ghostSprite.SetImage(ghostImage);
+	ghostSprite.SetPosition(0, 0);
+}
+
+void Video::drawGraphics(sf::RenderWindow& mainWindow, DataStore& data)
+{
+	mainWindow.Clear(data.bgColor); //clear screen
+	
+	//draw background
+	drawGhosting(mainWindow, data);
+
+	//draw foreground
+	drawPlayer(mainWindow, data);
+	drawBullets(mainWindow, data);
+	drawEnemies(mainWindow, data);
+
+	//draw gui
+	drawCursor(mainWindow, data);
+	drawDebug(mainWindow, data);
+
+    mainWindow.Display(); //draw screen
+}
+
+void Video::drawGhosting(sf::RenderWindow& mainWindow, DataStore& data)
+{
+	mainWindow.Draw(ghostSprite);
+}
+
+
+
+void Video::drawPlayer(sf::RenderWindow& mainWindow, DataStore& data)
+{
+	float playerSize = data.settings.PLAYER_SIZE / 2;
+	sf::Shape player = sf::Shape::Rectangle((data.playerPos[0] - playerSize), (data.playerPos[1] - playerSize), (data.playerPos[0] + playerSize), (data.playerPos[1] + playerSize), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(player);
+}
+
+void Video::drawBullets(sf::RenderWindow& mainWindow, DataStore& data)
+{
+	float bulletSize = data.settings.BULLET_SIZE / 2;
+	sf::Shape bullet;
+
+	for(int i=0; i<data.bulletList.size(); i++)
+	{
+		bullet = sf::Shape::Rectangle((data.bulletList[i][0] - bulletSize), (data.bulletList[i][1] - bulletSize), (data.bulletList[i][0] + bulletSize), (data.bulletList[i][1] + bulletSize), data.settings.PLAYER_COLOR);
+		mainWindow.Draw(bullet);
+	}
+}
+
+void Video::drawEnemies(sf::RenderWindow& mainWindow, DataStore& data)
+{
+	float enemySize = data.settings.ENEMY_SIZE / 2;
+	sf::Shape enemy;
+
+	for(int i=0; i<data.enemyList.size(); i++)
+	{
+		enemy = sf::Shape::Rectangle((data.enemyList[i][0] - enemySize), (data.enemyList[i][1] - enemySize), (data.enemyList[i][0] + enemySize), (data.enemyList[i][1] + enemySize), data.enemyColor);
+		mainWindow.Draw(enemy);
+
+		//for each pixel/point of the enemy being drawn, record its shadow
+		for (int j = data.enemyList[i][0] - data.settings.ENEMY_SIZE; j < data.enemyList[i][0] + data.settings.ENEMY_SIZE / 2; j++)
+		{
+			for (int k = data.enemyList[i][1] - data.settings.ENEMY_SIZE; k < data.enemyList[i][1] + data.settings.ENEMY_SIZE / 2; k++)
+			{
+				if (j > 0 && j < data.settings.WIN_WIDTH && k > 0 && k < data.settings.WIN_HEIGHT)
+					ghostImage.SetPixel(j, k, data.enemyColor);
+			}
+		}
+	}
+}
+
+
+
+void Video::drawCursor(sf::RenderWindow& mainWindow, DataStore& data)
+{
+	//draw a box cursor with spaces on the sides
+	float cursorSize = data.settings.CURSOR_SIZE / 2;
+	float cursorWidth = cursorSize / 4;
+	float cursorLength = cursorSize / 2;
+
+	sf::Shape cursor;
+
+	//top-left
+	cursor = sf::Shape::Rectangle((data.mousePos[0] - cursorSize), (data.mousePos[1] - cursorSize), (data.mousePos[0] - cursorSize + cursorLength), (data.mousePos[1] - cursorSize + cursorWidth), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(cursor);
+	cursor = sf::Shape::Rectangle((data.mousePos[0] - cursorSize), (data.mousePos[1] - cursorSize), (data.mousePos[0] - cursorSize + cursorWidth), (data.mousePos[1] - cursorSize + cursorLength), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(cursor);
+	
+	//top-right
+	cursor = sf::Shape::Rectangle((data.mousePos[0] + cursorSize - cursorLength), (data.mousePos[1] - cursorSize), (data.mousePos[0] + cursorSize), (data.mousePos[1] - cursorSize + cursorWidth), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(cursor);
+	cursor = sf::Shape::Rectangle((data.mousePos[0] + cursorSize - cursorWidth), (data.mousePos[1] - cursorSize), (data.mousePos[0] + cursorSize), (data.mousePos[1] - cursorSize + cursorLength), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(cursor);
+	
+	//bottom-left
+	cursor = sf::Shape::Rectangle((data.mousePos[0] - cursorSize), (data.mousePos[1] + cursorSize), (data.mousePos[0] - cursorSize + cursorWidth), (data.mousePos[1] + cursorSize - cursorLength), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(cursor);
+	cursor = sf::Shape::Rectangle((data.mousePos[0] - cursorSize), (data.mousePos[1] + cursorSize), (data.mousePos[0] - cursorSize + cursorLength), (data.mousePos[1] + cursorSize - cursorWidth), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(cursor);
+	
+	//bottom-right
+	cursor = sf::Shape::Rectangle((data.mousePos[0] + cursorSize), (data.mousePos[1] + cursorSize), (data.mousePos[0] + cursorSize - cursorLength), (data.mousePos[1] + cursorSize - cursorWidth), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(cursor);
+	cursor = sf::Shape::Rectangle((data.mousePos[0] + cursorSize), (data.mousePos[1] + cursorSize), (data.mousePos[0] + cursorSize - cursorWidth), (data.mousePos[1] + cursorSize - cursorLength), data.settings.PLAYER_COLOR);
+	mainWindow.Draw(cursor);
+}
+
+void Video::drawDebug(sf::RenderWindow& mainWindow, DataStore& data)
+{
+	std::ostringstream sstream;
+	sf::String text("", font, 15);
+	text.SetPosition(5, 5);
+
+	sstream << "FPS: ";
+	sstream << static_cast<int>(1 / mainWindow.GetFrameTime());
+
+	text.SetText(sstream.str());
+	sstream.end;
+	
+	text.SetColor(sf::Color::Red);
+	mainWindow.Draw(text);
+}
